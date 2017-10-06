@@ -9,7 +9,7 @@ server {
         root {{ location.root }};
         index {{ location.file_index }};
         {% if 'try_files' in location %}
-        try_files {{ location.try_files }}
+        try_files {{ location.try_files }};
         {% endif %}
     }
     {% endfor %}
@@ -42,5 +42,5 @@ server {
     }
 
     {% endif %}
-    
+
 }
