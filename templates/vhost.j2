@@ -1,18 +1,42 @@
+{% if 'upstreams' in item %}
+{% for upstream in item.upstreams %}
+upstream {{ upstream.name }} {
+{% for server in upstream.servers %}
+    {{ server }};
+{% endfor %}
+}
+{% endfor %}
+{% endif %}
+
 server {
     listen       {{ item.listen_port }};
     server_name  {{ item.server_name }};
 
     access_log  {{ item.access_log }};
 
-    {% for location in item.locations %}
+{% for location in item.locations %}
     location {{ location.mask }} {
-        root {{ location.root }};
-        index {{ location.file_index }};
-        {% if 'try_files' in location %}
-        try_files {{ location.try_files }};
-        {% endif %}
+{% if 'proxy_pass' in location %}
+      proxy_pass {{ location.proxy_pass }};
+      proxy_pass_request_headers      on;
+{% endif %}
+{% if 'root' in location %}
+      root {{ location.root }};
+{% endif %}
+{% if 'file_index' in location %}
+      index {{ location.file_index }};
+{% endif %}
+{% if 'try_files' in location %}
+      try_files {{ location.try_files }};
+{% endif %}
+{% if 'headers' in location %}
+{% for header in location.headers %}
+      add_header '{{ header.name }}' {{ header.value }} {% if 'always' in header %}always{% endif %};
+{% endfor %}
+{% endif %}
+
     }
-    {% endfor %}
+{% endfor %}
 
     #error_page  404              /404.html;
 
@@ -39,6 +63,11 @@ server {
         fastcgi_index  {{ item.fpm.index }};
         fastcgi_param  SCRIPT_FILENAME  {{ item.fpm.root }}$fastcgi_script_name;
         include        fastcgi_params;
+        {% if 'headers' in item.fpm %}
+        {% for header in item.fpm.headers %}
+            add_header '{{ header.name }}' '{{ header.value }}' {% if 'always' in header %}always{% endif %};
+        {% endfor %}
+        {% endif %}
     }
 
     {% endif %}
